@@ -1,0 +1,2102 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Portal & Self-Service Ferie - Enterprise Edition v9</title>
+    <!-- Google Fonts & Bootstrap 5 & FontAwesome & SheetJS per Excel -->
+    <link href="" rel="stylesheet" id="googleFontLink">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #e0e7ff;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+            --bg-main: #f1f5f9;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --font-family: 'Plus Jakarta Sans', sans-serif;
+            --btn-radius: 0.75rem;
+            --card-radius: 1.25rem;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        .navbar-custom {
+            background: var(--surface);
+            border-bottom: 2px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-custom {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.05), 0 8px 10px -6px rgba(99, 102, 241, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .btn-custom-primary {
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: var(--btn-radius);
+            padding: 0.75rem 1.5rem;
+            font-weight: 700;
+            color: white;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .btn-custom-primary:hover {
+            opacity: 0.95;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn, .form-control, .form-select {
+            border-radius: var(--btn-radius);
+        }
+
+        .form-control, .form-select {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            font-size: 0.95rem;
+            background-color: #f8fafc;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-light);
+            background-color: #ffffff;
+        }
+
+        .badge-status {
+            padding: 0.5em 1em;
+            border-radius: 50rem;
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        .badge-pending { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+        .badge-approved { background-color: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
+        .badge-rejected { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+
+        .hidden { display: none !important; }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 800;
+            font-size: 0.75rem;
+            color: var(--primary);
+            text-transform: uppercase;
+            padding: 0.5rem 0;
+        }
+        .calendar-cell {
+            min-height: 105px;
+            background: #ffffff;
+            border: 2px solid var(--border);
+            border-radius: var(--btn-radius);
+            padding: 6px;
+            font-size: 0.8rem;
+            position: relative;
+        }
+        .calendar-cell.other-month {
+            background: #f8fafc;
+            opacity: 0.4;
+        }
+        .calendar-date-num {
+            font-weight: 800;
+            color: #334155;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+        .cal-event {
+            font-size: 0.7rem;
+            padding: 3px 6px;
+            border-radius: 6px;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 700;
+        }
+        .cal-event.approved { background-color: #d1fae5; color: #065f46; border-left: 3px solid #059669; }
+        .cal-event.pending { background-color: #fef3c7; color: #92400e; border-left: 3px solid #d97706; }
+        .cal-event.rejected { background-color: #fee2e2; color: #991b1b; border-left: 3px solid #dc2626; }
+
+        .stat-card {
+            border-radius: var(--card-radius);
+            padding: 1.5rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        .access-box {
+            max-width: 500px;
+            margin: 3rem auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR SUPERIORE -->
+    <nav class="navbar navbar-custom py-3 mb-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="text-white p-2.5 rounded-4 me-3 fs-4 shadow-sm" style="background: var(--accent-gradient);">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0 fw-extrabold text-dark"><i class="fa-solid fa-building me-1 text-primary"></i>HR Portal Corporate <span class="badge text-primary bg-primary bg-opacity-10 fs-8 ms-1">PRO v9</span></h5>
+                    <small class="text-muted"><i class="fa-solid fa-shield-halved text-success me-1"></i> Sistema Gestione Risorse Umane Avanzato</small>
+                </div>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div id="badgeAreaRiservataUtente" class="hidden d-flex align-items-center bg-white px-3 py-1.5 rounded-pill border shadow-sm small me-2">
+                    <i class="fa-solid fa-user-circle text-primary me-2 fs-5"></i>
+                    <span id="labelNomeUtenteCorrente" class="fw-bold text-dark"></span>
+                    <button class="btn btn-link text-danger p-0 ms-2 text-decoration-none" onclick="cambiaUtente()" title="Esci"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+
+                <!-- Notifiche Dipendente -->
+                <div id="notifDipendenteContainer" class="dropdown hidden">
+                    <button class="btn btn-light position-relative rounded-circle border shadow-sm" style="width: 42px; height: 42px;" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-regular fa-bell text-primary"></i>
+                        <span id="badgeNotifDip" class="position-absolute top-0 start-100 translate-middle p-1.5 bg-danger border border-light rounded-circle hidden"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2 rounded-4" style="width: 320px;" id="listaNotifDip">
+                        <li><h6 class="dropdown-header fw-bold"><i class="fa-solid fa-bell me-1"></i>Aggiornamenti Richieste</h6></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><span class="dropdown-item-text text-muted small">Nessuna nuova notifica</span></li>
+                    </ul>
+                </div>
+
+                <!-- Pulsanti Accesso Gestione -->
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 fw-bold shadow-sm" onclick="gestisciAccessoAssistenteAdmin()">
+                    <i class="fa-solid fa-eye me-1"></i> Assistente Admin
+                </button>
+                <button class="btn btn-outline-primary btn-sm rounded-pill px-4 py-2 fw-bold shadow-sm" id="btnCambiaVista" onclick="gestisciAccessoAdmin()">
+                    <i class="fa-solid fa-lock me-1"></i> <span id="testoPulsanteAdmin">Area Admin</span>
+                    <span id="badgeAdminNotif" class="badge bg-danger rounded-pill ms-1 hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+
+        <!-- ================= SCHERMATA LOGIN & RECUPERO PASSWORD ================= -->
+        <div id="schermataLoginDipendente" class="access-box">
+            <div class="card card-custom p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow" style="width: 75px; height: 75px; background: var(--accent-gradient);">
+                        <i class="fa-solid fa-fingerprint fs-2"></i>
+                    </div>
+                    <h3 class="fw-extrabold text-dark"><i class="fa-solid fa-right-to-bracket text-primary me-2"></i>Accesso Dipendenti</h3>
+                    <p class="text-muted small">Inserisci le tue credenziali o recupera la password in caso di smarrimento.</p>
+                </div>
+
+                <ul class="nav nav-pills nav-fill mb-4 bg-light p-1 rounded-3" id="loginTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active rounded-3 py-1.5 fw-bold small" id="tab-login-btn" data-bs-toggle="pill" data-bs-target="#boxLogin" type="button"><i class="fa-solid fa-right-to-bracket me-1"></i>Accedi</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-3 py-1.5 fw-bold small" id="tab-recupero-btn" data-bs-toggle="pill" data-bs-target="#boxRecupero" type="button"><i class="fa-solid fa-key me-1"></i>Recupera Password</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="loginTabsContent">
+                    <div class="tab-pane fade show active" id="boxLogin" role="tabpanel">
+                        <form id="formLoginUtente" onsubmit="effettuaLoginUtente(event)">
+                            <div class="mb-3 text-start">
+                                <label for="inputLoginNome" class="form-label fw-bold small"><i class="fa-solid fa-user text-primary me-1"></i>Nome e Cognome</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="fa-regular fa-user text-primary"></i></span>
+                                    <input type="text" class="form-control border-start-0 ps-0" id="inputLoginNome" required placeholder="Es. Mario Rossi">
+                                </div>
+                            </div>
+                            <div class="mb-4 text-start">
+                                <label for="inputLoginPassword" class="form-label fw-bold small"><i class="fa-solid fa-key text-primary me-1"></i>Password Personale</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-key text-primary"></i></span>
+                                    <input type="password" class="form-control border-start-0 ps-0" id="inputLoginPassword" required placeholder="Inserisci la password">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-custom-primary w-100 shadow py-2.5">
+                                <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Accedi al Portale
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade" id="boxRecupero" role="tabpanel">
+                        <form id="formRecuperoPassword" onsubmit="eseguiRecuperoPassword(event)">
+                            <div class="mb-3 text-start">
+                                <label for="inputRecuperoNome" class="form-label fw-bold small"><i class="fa-solid fa-user text-primary me-1"></i>Il tuo Nome e Cognome</label>
+                                <input type="text" class="form-control" id="inputRecuperoNome" required placeholder="Es. Mario Rossi" onblur="verificaDomandaSegretaDipendente()">
+                            </div>
+                            <div class="mb-3 text-start">
+                                <label class="form-label fw-bold small text-muted"><i class="fa-solid fa-question-circle text-primary me-1"></i>Domanda Segreta Registrata:</label>
+                                <div id="labelDomandaSegreta" class="p-2.5 bg-light rounded-3 border small fw-bold text-dark">Inserisci prima il tuo nome sopra...</div>
+                            </div>
+                            <div class="mb-3 text-start">
+                                <label for="inputRispostaSegreta" class="form-label fw-bold small"><i class="fa-solid fa-comment-dots text-primary me-1"></i>Risposta Segreta</label>
+                                <input type="text" class="form-control" id="inputRispostaSegreta" required placeholder="La tua risposta...">
+                            </div>
+                            <div class="mb-4 text-start">
+                                <label for="inputNuovaPassword" class="form-label fw-bold small"><i class="fa-solid fa-lock text-primary me-1"></i>Nuova Password</label>
+                                <input type="password" class="form-control" id="inputNuovaPassword" required placeholder="Inserisci nuova password">
+                            </div>
+                            <button type="submit" class="btn btn-success w-100 shadow py-2.5 rounded-3 fw-bold text-white">
+                                <i class="fa-solid fa-rotate-right me-2"></i>Reimposta Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= VISTA DIPENDENTE ================= -->
+        <div id="vistaDipendente" class="hidden">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card card-custom p-4 text-white border-0 shadow-lg" style="background: var(--accent-gradient);">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div>
+                                <h2 class="fw-extrabold mb-1"><i class="fa-solid fa-house-user me-2"></i>Area Personale Dipendente</h2>
+                                <p class="mb-0 text-white-50 small">Gestisci in autonomia le tue richieste e il planning privato.</p>
+                            </div>
+                            <button class="btn btn-light btn-sm rounded-pill px-4 text-primary fw-extrabold shadow-sm py-2" data-bs-toggle="modal" data-bs-target="#modalNuovaRichiesta">
+                                <i class="fa-solid fa-plus me-1"></i> Nuova Richiesta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bacheca Comunicazioni HR per i dipendenti -->
+            <div id="bachecaComunicazioniDipendente" class="row mb-4 hidden">
+                <div class="col-12">
+                    <div class="card card-custom p-3 bg-light border-start border-4 border-primary">
+                        <div class="d-flex align-items-center">
+                            <div class="fs-4 text-primary me-3"><i class="fa-solid fa-bullhorn"></i></div>
+                            <div>
+                                <h6 class="fw-extrabold mb-1 text-dark">Comunicazione dalla Direzione / HR</h6>
+                                <p id="testoComunicazioneAttiva" class="mb-0 small text-muted"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sezione Nuove Funzioni Aggiunte da Admin -->
+            <div id="sezioneFunzioniExtraDipendente" class="row mb-4 hidden">
+                <div class="col-12">
+                    <div class="card card-custom p-4 border-0 shadow-sm" style="background: #eef2ff;">
+                        <h5 class="fw-extrabold text-dark mb-3"><i class="fa-solid fa-star text-warning me-2"></i>Servizi e Funzioni Extra per Dipendenti</h5>
+                        <div id="listaFunzioniExtraContainer" class="row g-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="card card-custom p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="fw-extrabold text-dark mb-0 fs-5"><i class="fa-solid fa-list-check text-primary me-2"></i>Le Mie Richieste</h4>
+                            <span class="badge bg-light text-primary border px-2.5 py-1.5 fw-bold small" id="conteggioMieRichieste">0 richieste</span>
+                        </div>
+
+                        <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr class="text-muted fs-7">
+                                        <th class="border-0"><i class="fa-solid fa-tag me-1 text-primary"></i>Tipo & Periodo</th>
+                                        <th class="border-0"><i class="fa-solid fa-note-sticky me-1 text-primary"></i>Note / Motivo Rifiuto</th>
+                                        <th class="border-0 text-end"><i class="fa-solid fa-circle-info me-1 text-primary"></i>Stato</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabellaMieiDati"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="card card-custom p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="fw-extrabold text-dark mb-0 fs-5"><i class="fa-regular fa-calendar-days text-primary me-2"></i>Il Mio Calendario Personale</h4>
+                            <div class="btn-group shadow-sm">
+                                <button class="btn btn-outline-secondary btn-sm px-2" onclick="cambiaMeseCalendarioDip(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                                <button class="btn btn-outline-secondary btn-sm px-3 fw-bold bg-white text-dark" id="labelMeseCorrenteDip">Mese Anno</button>
+                                <button class="btn btn-outline-secondary btn-sm px-2" onclick="cambiaMeseCalendarioDip(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-3">Visualizzazione esclusiva delle tue pianificazioni.</p>
+                        
+                        <div class="d-flex gap-3 mb-3 small text-muted bg-light p-2.5 rounded-3 flex-wrap">
+                            <div><span class="badge bg-success">&nbsp;</span> Approvate</div>
+                            <div><span class="badge bg-warning text-dark">&nbsp;</span> In attesa</div>
+                            <div><span class="badge bg-danger">&nbsp;</span> Rifiutate</div>
+                        </div>
+
+                        <div id="grigliaCalendarioDipContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= MODALE SLOT PIENI (TEAM LEADER) ================= -->
+        <div class="modal fade" id="modalSlotPieni" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header bg-danger text-white border-0">
+                        <h5 class="modal-title fw-extrabold"><i class="fa-solid fa-triangle-exclamation me-2"></i>Slot Ferie Pieni</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <div class="text-danger mb-3 fs-1"><i class="fa-solid fa-users-slash"></i></div>
+                        <h5 class="fw-bold text-dark mb-3">Impossibile procedere con la richiesta</h5>
+                        <p class="text-muted small mb-4">Gli slot per le date selezionate hanno raggiunto o superato il limite massimo giornaliero di dipendenti in assenza. <br><br>Ti invitiamo a <strong>contattare il tuo Team Leader</strong> per verificare alternative.</p>
+                        <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Ho capito</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= MODALE NUOVA RICHIESTA ================= -->
+        <div class="modal fade" id="modalNuovaRichiesta" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-extrabold text-dark"><i class="fa-solid fa-calendar-plus text-primary me-2"></i>Nuova Richiesta Assenza</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        
+                        <div id="alertErroreDate" class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3 p-3 mb-3 hidden small" role="alert">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> La data di fine non può essere precedente a quella di inizio.
+                        </div>
+
+                        <form id="formFerie" onsubmit="inviaNuovaRichiesta(event)">
+                            
+                            <div class="mb-3">
+                                <label for="tipoRichiesta" class="form-label fw-bold small"><i class="fa-solid fa-list text-primary me-1"></i>Motivazione Assenza</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-tag text-primary"></i></span>
+                                    <select class="form-select border-start-0 ps-0" id="tipoRichiesta" required onchange="gestisciVisibilitaOrari()">
+                                        <option value="" disabled selected>Seleziona motivazione...</option>
+                                        <option value="Ferie">Ferie standard</option>
+                                        <option value="Permesso Orario">Permesso Orario ROL</option>
+                                        <option value="Permesso Non Retribuito">Permesso Non Retribuito</option>
+                                        <option value="Congedo Matrimoniale">Congedo Matrimoniale</option>
+                                        <option value="Congedo Lutto">Congedo Lutto Familiare</option>
+                                        <option value="Malattia">Malattia</option>
+                                        <option value="Visita medica">Visita medica / Esami</option>
+                                        <option value="Donazione sangue">Donazione sangue</option>
+                                        <option value="Congedo parentale">Congedo parentale / Maternità</option>
+                                        <option value="Aspettativa">Aspettativa / Permesso Studio</option>
+                                        <option value="Altro">Altro motivo</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Sezione Orari Permesso (Mostrata solo se Permesso Orario) -->
+                            <div id="boxCampiOrario" class="row mb-3 hidden bg-light p-3 rounded-3 border">
+                                <div class="col-md-6">
+                                    <label for="oraInizio" class="form-label fw-bold small"><i class="fa-solid fa-clock text-primary me-1"></i>Dalle ore</label>
+                                    <input type="time" class="form-control" id="oraInizio" value="09:00">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="oraFine" class="form-label fw-bold small"><i class="fa-solid fa-clock text-primary me-1"></i>Alle ore</label>
+                                    <input type="time" class="form-control" id="oraFine" value="13:00">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="dataInizio" class="form-label fw-bold small"><i class="fa-solid fa-calendar-day text-primary me-1"></i>Data Inizio</label>
+                                    <input type="date" class="form-control" id="dataInizio" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="dataFine" class="form-label fw-bold small"><i class="fa-solid fa-calendar-day text-primary me-1"></i>Data Fine</label>
+                                    <input type="date" class="form-control" id="dataFine" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="note" class="form-label fw-bold small"><i class="fa-solid fa-note-sticky text-primary me-1"></i>Note / Dettagli Aggiuntivi</label>
+                                <textarea class="form-control" id="note" rows="3" placeholder="Aggiungi note per l'HR..."></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annulla</button>
+                                <button type="submit" class="btn btn-custom-primary rounded-pill px-4"><i class="fa-solid fa-paper-plane me-1"></i>Invia Richiesta</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= MODALE CONFIGURAZIONE DOMANDA SEGRETA ================= -->
+        <div class="modal fade" id="modalImpostaDomandaSegreta" data-bs-backdrop="static" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-extrabold text-dark"><i class="fa-solid fa-shield-cat text-primary me-2"></i>Configura Sicurezza Account</h5>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="text-muted small">Essendo il tuo primo accesso con questo nome, devi impostare una password e una domanda di sicurezza per il recupero password futuro.</p>
+                        <form id="formImpostaSegreto" onsubmit="salvaCredenzialiPrimoAccesso(event)">
+                            <div class="mb-3">
+                                <label for="nuovaPassReg" class="form-label fw-bold small"><i class="fa-solid fa-lock text-primary me-1"></i>Password Personale</label>
+                                <input type="password" class="form-control" id="nuovaPassReg" required placeholder="Scegli password">
+                            </div>
+                            <div class="mb-3">
+                                <label for="selectDomanda" class="form-label fw-bold small"><i class="fa-solid fa-question text-primary me-1"></i>Domanda di Sicurezza</label>
+                                <select class="form-select mb-2" id="selectDomanda" required onchange="gestisciInputDomandaPersonalizzata(this)">
+                                    <option value="" disabled selected>Scegli una domanda...</option>
+                                    <option value="Nome della tua città natale?">Nome della tua città natale?</option>
+                                    <option value="Nome del tuo primo animale domestico?">Nome del tuo primo animale domestico?</option>
+                                    <option value="Il cognome da nubile di tua madre?">Il cognome da nubile di tua madre?</option>
+                                    <option value="La tua squadra del cuore?">La tua squadra del cuore?</option>
+                                    <option value="Il tuo cibo preferito?">Il tuo cibo preferito?</option>
+                                    <option value="Il modello della tua prima auto?">Il modello della tua prima auto?</option>
+                                    <option value="personalizzata">+ Scrivi una domanda personalizzata...</option>
+                                </select>
+                                <input type="text" class="form-control hidden mt-2" id="inputDomandaPersonalizzata" placeholder="Scrivi qui la tua domanda segreta...">
+                            </div>
+                            <div class="mb-4">
+                                <label for="inputRispostaReg" class="form-label fw-bold small"><i class="fa-solid fa-comment text-primary me-1"></i>Risposta Segreta</label>
+                                <input type="text" class="form-control" id="inputRispostaReg" required placeholder="La tua risposta segreta">
+                            </div>
+                            <button type="submit" class="btn btn-custom-primary w-100 rounded-pill py-2.5 fw-bold"><i class="fa-solid fa-check me-1"></i>Salva e Accedi al Portale</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= VISTA ADMIN (E ASSISTENTE ADMIN) ================= -->
+        <div id="vistaAdmin" class="row justify-content-center hidden">
+            <div class="col-lg-12">
+                <div class="card card-custom p-4 p-md-5 mb-4 shadow-lg">
+                    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-3">
+                        <div>
+                            <h3 class="fw-extrabold text-dark mb-1" id="titoloPannelloAdmin"><i class="fa-solid fa-gauge-high text-primary me-2"></i>Pannello di Controllo HR Admin PRO</h3>
+                            <p class="text-muted small mb-0" id="sottotitoloPannelloAdmin">Gestione centralizzata del personale, anagrafiche, approvazioni e reportistica avanzata.</p>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-success btn-sm rounded-pill px-3 fw-bold shadow-sm" onclick="esportaExcelCSV()">
+                                <i class="fa-solid fa-file-excel me-1"></i> Esporta Report CSV
+                            </button>
+                            <button class="btn btn-light border btn-sm rounded-pill px-4 fw-bold shadow-sm" onclick="tornaVistaPrincipale()">
+                                <i class="fa-solid fa-arrow-left me-1"></i> <span id="testoPulsanteEsciAdmin">Esci da Admin</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Contatori / KPI -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="stat-card bg-warning bg-gradient">
+                                <div>
+                                    <h6 class="mb-0 text-uppercase fw-extrabold fs-7"><i class="fa-solid fa-clock me-1"></i>In Attesa</h6>
+                                    <h2 class="fw-extrabold mb-0" id="countPending">0</h2>
+                                </div>
+                                <i class="fa-solid fa-clock fs-1 opacity-50"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-success bg-gradient">
+                                <div>
+                                    <h6 class="mb-0 text-uppercase fw-extrabold fs-7"><i class="fa-solid fa-check-circle me-1"></i>Approvate</h6>
+                                    <h2 class="fw-extrabold mb-0" id="countApproved">0</h2>
+                                </div>
+                                <i class="fa-solid fa-check-circle fs-1 opacity-50"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-danger bg-gradient">
+                                <div>
+                                    <h6 class="mb-0 text-uppercase fw-extrabold fs-7"><i class="fa-solid fa-xmark-circle me-1"></i>Rifiutate</h6>
+                                    <h2 class="fw-extrabold mb-0" id="countRejected">0</h2>
+                                </div>
+                                <i class="fa-solid fa-xmark-circle fs-1 opacity-50"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-primary bg-gradient">
+                                <div>
+                                    <h6 class="mb-0 text-uppercase fw-extrabold fs-7"><i class="fa-solid fa-users-gear me-1"></i>Totale Richieste</h6>
+                                    <h2 class="fw-extrabold mb-0" id="countTotal">0</h2>
+                                </div>
+                                <i class="fa-solid fa-users-gear fs-1 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs Navigazione Admin -->
+                    <ul class="nav nav-pills mb-4 gap-2 flex-wrap" id="adminTab" role="tablist">
+                        <li class="nav-item" role="presentation" id="navItemTabella">
+                            <button class="nav-link active rounded-pill px-4 fw-bold" id="tabella-tab" data-bs-toggle="pill" data-bs-target="#tabellaContenuto" type="button"><i class="fa-solid fa-list me-2"></i>Gestione Richieste</button>
+                        </li>
+                        <li class="nav-item" role="presentation" id="navItemDipendenti">
+                            <button class="nav-link rounded-pill px-4 fw-bold" id="dipendenti-tab" data-bs-toggle="pill" data-bs-target="#dipendentiContenuto" type="button" onclick="aggiornaListaDipendentiAdmin()"><i class="fa-solid fa-id-card-clip me-2"></i>Anagrafica Dipendenti</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill px-4 fw-bold" id="planning-tab" data-bs-toggle="pill" data-bs-target="#planningContenuto" type="button" onclick="disegnaCalendarioAdmin()"><i class="fa-solid fa-calendar-days me-2"></i>Planning & Allerte</button>
+                        </li>
+                        <li class="nav-item" role="presentation" id="navItemComunicazioni">
+                            <button class="nav-link rounded-pill px-4 fw-bold" id="comunicazioni-tab" data-bs-toggle="pill" data-bs-target="#comunicazioniContenuto" type="button"><i class="fa-solid fa-bullhorn me-2"></i>Comunicazioni</button>
+                        </li>
+                        <li class="nav-item" role="presentation" id="navItemAssistenteCom">
+                            <button class="nav-link rounded-pill px-4 fw-bold hidden" id="assistenteCom-tab" data-bs-toggle="pill" data-bs-target="#assistenteComContenuto" type="button"><i class="fa-solid fa-paper-plane me-2"></i>Invia Messaggio ad Admin</button>
+                        </li>
+                        <li class="nav-item" role="presentation" id="navItemFunzioni">
+                            <button class="nav-link rounded-pill px-4 fw-bold" id="funzioni-tab" data-bs-toggle="pill" data-bs-target="#funzioniContenuto" type="button" onclick="aggiornaListaFunzioniAdmin()"><i class="fa-solid fa-puzzle-piece me-2"></i>Nuove Funzioni</button>
+                        </li>
+                        <li class="nav-item" role="presentation" id="navItemPersonalizzazione">
+                            <button class="nav-link rounded-pill px-4 fw-bold" id="personalizzazione-tab" data-bs-toggle="pill" data-bs-target="#personalizzazioneContenuto" type="button"><i class="fa-solid fa-palette me-2"></i>Tema Colori & Stile</button>
+                        </li>
+                        <li class="nav-item" role="presentation" id="navItemSicurezzaAdmin">
+                            <button class="nav-link rounded-pill px-4 fw-bold" id="sicurezzaAdmin-tab" data-bs-toggle="pill" data-bs-target="#sicurezzaAdminContenuto" type="button"><i class="fa-solid fa-key me-2"></i>Cambia Password</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill px-4 fw-bold" id="statistiche-tab" data-bs-toggle="pill" data-bs-target="#statisticheContenuto" type="button" onclick="aggiornaSezioneStatistiche()"><i class="fa-solid fa-chart-pie me-2"></i>Statistiche & KPI</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="adminTabContent">
+                        <!-- TAB 1: Richieste -->
+                        <div class="tab-pane fade show active" id="tabellaContenuto" role="tabpanel">
+                            <div class="d-flex align-items-center gap-2 mb-3 flex-wrap justify-content-between">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="text-muted small fw-bold me-2"><i class="fa-solid fa-filter me-1 text-primary"></i>Filtra per stato:</span>
+                                    <button class="btn btn-sm btn-dark rounded-pill px-3 fw-bold" onclick="impostaFiltroAdmin('Tutti')" id="btnFiltroTutti"><i class="fa-solid fa-list me-1"></i>Tutti</button>
+                                    <button class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3 fw-bold" onclick="impostaFiltroAdmin('In attesa')" id="btnFiltroInAttesa"><i class="fa-solid fa-clock me-1"></i>In attesa</button>
+                                    <button class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" onclick="impostaFiltroAdmin('Approvata')" id="btnFiltroApprovata"><i class="fa-solid fa-check me-1"></i>Approvate</button>
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" onclick="impostaFiltroAdmin('Rifiutata')" id="btnFiltroRifiutata"><i class="fa-solid fa-xmark me-1"></i>Rifiutate</button>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr class="text-muted fs-7">
+                                            <th class="border-0"><i class="fa-solid fa-user me-1 text-primary"></i>Dipendente</th>
+                                            <th class="border-0"><i class="fa-solid fa-tag me-1 text-primary"></i>Motivazione</th>
+                                            <th class="border-0"><i class="fa-solid fa-calendar me-1 text-primary"></i>Periodo / Orario</th>
+                                            <th class="border-0"><i class="fa-solid fa-note-sticky me-1 text-primary"></i>Note / Motivo Rifiuto</th>
+                                            <th class="border-0"><i class="fa-solid fa-circle-info me-1 text-primary"></i>Stato</th>
+                                            <th class="border-0 text-end" id="colonnaAzioniAdminTh"><i class="fa-solid fa-gears me-1 text-primary"></i>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabellaAdmin"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: Anagrafica Dipendenti -->
+                        <div class="tab-pane fade" id="dipendentiContenuto" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <h5 class="fw-extrabold mb-0"><i class="fa-solid fa-users me-2 text-primary"></i>Elenco Dipendenti Registrati</h5>
+                                <div class="d-flex gap-2">
+                                    <label class="btn btn-success btn-sm rounded-pill px-3 fw-bold shadow-sm mb-0" style="cursor: pointer;">
+                                        <i class="fa-solid fa-file-excel me-1"></i> Importa da Excel
+                                        <input type="file" id="excelFileDipendenti" accept=".xlsx, .xls" class="hidden" onchange="importaDipendentiDaExcel(event)">
+                                    </label>
+                                    <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalAggiungiDipendente"><i class="fa-solid fa-user-plus me-1"></i> Aggiungi Dipendente</button>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr class="text-muted fs-7">
+                                            <th class="border-0"><i class="fa-solid fa-user-tie me-1 text-primary"></i>Dipendente</th>
+                                            <th class="border-0"><i class="fa-solid fa-shield-halved me-1 text-primary"></i>Domanda Segreta Configurata</th>
+                                            <th class="border-0 text-end"><i class="fa-solid fa-gears me-1 text-primary"></i>Azioni HR</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabellaDipendentiAdmin"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: Planning Aziendale & Allerte Max Persone -->
+                        <div class="tab-pane fade" id="planningContenuto" role="tabpanel">
+                            <div class="card p-3 mb-4 bg-light border">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h6 class="fw-extrabold mb-1"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Configurazione Soglia Max Personale in Ferie</h6>
+                                        <p class="text-muted small mb-0">Imposta il numero massimo consentito di dipendenti contemporaneamente in ferie/assenza prima di ricevere un'allerta.</p>
+                                    </div>
+                                    <div class="col-md-4 mt-3 mt-md-0 d-flex gap-2">
+                                        <input type="number" class="form-control" id="inputSogliaMaxFerie" min="1" value="3" onchange="salvaSogliaMaxFerie()">
+                                        <span class="align-self-center fw-bold small text-muted">persone</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-extrabold mb-0" id="labelMeseCorrenteAdmin">Mese Anno</h5>
+                                <div class="btn-group shadow-sm">
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="cambiaMeseCalendarioAdmin(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                                    <button class="btn btn-outline-secondary btn-sm px-3 bg-white fw-bold text-dark" onclick="impostaMeseCorrenteAdmin()">Oggi</button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="cambiaMeseCalendarioAdmin(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-3 mb-3 small text-muted bg-light p-2.5 rounded-3 flex-wrap">
+                                <div><span class="badge bg-success">&nbsp;</span> Approvate</div>
+                                <div><span class="badge bg-warning text-dark">&nbsp;</span> In attesa</div>
+                                <div><span class="badge bg-danger">&nbsp;</span> Rifiutate</div>
+                            </div>
+                            <div id="grigliaCalendarioAdminContainer"></div>
+                        </div>
+
+                        <!-- TAB 4: Invio Comunicazioni -->
+                        <div class="tab-pane fade" id="comunicazioniContenuto" role="tabpanel">
+                            <h5 class="fw-extrabold mb-3"><i class="fa-solid fa-bullhorn text-primary me-2"></i>Invia Comunicazione a Tutti i Dipendenti</h5>
+                            <p class="text-muted small mb-4">La comunicazione verrà visualizzata immediatamente nella dashboard di ogni dipendente.</p>
+                            
+                            <div class="card p-4 border bg-light rounded-4">
+                                <form id="formInvioComunicazione" onsubmit="inviaComunicazioneHR(event)">
+                                    <div class="mb-3">
+                                        <label for="testoComunicazione" class="form-label fw-bold small"><i class="fa-solid fa-message me-1 text-primary"></i>Testo della Comunicazione</label>
+                                        <textarea class="form-control" id="testoComunicazione" rows="4" required placeholder="Inserisci qui l'avviso o la comunicazione ufficiale..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-custom-primary rounded-pill px-4 fw-bold"><i class="fa-solid fa-paper-plane me-1"></i>Pubblica Comunicazione</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- TAB 4.5: Invio Messaggio Assistente ad Admin -->
+                        <div class="tab-pane fade" id="assistenteComContenuto" role="tabpanel">
+                            <h5 class="fw-extrabold mb-3"><i class="fa-solid fa-paper-plane text-primary me-2"></i>Invia Messaggio o Segnalazione all'Admin</h5>
+                            <p class="text-muted small mb-4">In qualità di Assistente Admin, puoi inviare una nota o richiesta direttamente all'Amministratore principale.</p>
+                            
+                            <div class="card p-4 border bg-light rounded-4 mb-4">
+                                <form id="formAssisAdminMsg" onsubmit="inviaMessaggioAssistenteAdmin(event)">
+                                    <div class="mb-3">
+                                        <label for="testoMessaggioAssistente" class="form-label fw-bold small"><i class="fa-solid fa-pen-to-square me-1 text-primary"></i>Messaggio per l'Admin</label>
+                                        <textarea class="form-control" id="testoMessaggioAssistente" rows="4" required placeholder="Scrivi una nota o comunicazione per l'Admin..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-custom-primary rounded-pill px-4 fw-bold"><i class="fa-solid fa-paper-plane me-1"></i>Invia all'Admin</button>
+                                </form>
+                            </div>
+
+                            <h6 class="fw-extrabold mb-3"><i class="fa-solid fa-inbox text-primary me-2"></i>Messaggi Ricevuti dall'Assistente Admin</h6>
+                            <div id="listaMessaggiAssistenteContainer" class="list-group"></div>
+                        </div>
+
+                        <!-- TAB 5: Aggiungi Nuove Funzioni per i Dipendenti -->
+                        <div class="tab-pane fade" id="funzioniContenuto" role="tabpanel">
+                            <h5 class="fw-extrabold mb-3"><i class="fa-solid fa-puzzle-piece text-primary me-2"></i>Aggiungi Nuove Funzioni / Moduli per i Dipendenti</h5>
+                            <p class="text-muted small mb-4">Crea collegamenti o servizi rapidi che compariranno nella dashboard personale dei dipendenti.</p>
+                            
+                            <div class="card p-4 border bg-light rounded-4 mb-4">
+                                <form id="formCreaFunzione" onsubmit="aggiungiNuovaFunzioneDipendente(event)">
+                                    <div class="row">
+                                        <div class="col-md-5 mb-3">
+                                            <label class="form-label fw-bold small"><i class="fa-solid fa-heading me-1 text-primary"></i>Titolo Funzione / Modulo</label>
+                                            <input type="text" class="form-control" id="inputTitoloFunzione" required placeholder="Es. Prenotazione Mensa">
+                                        </div>
+                                        <div class="col-md-7 mb-3">
+                                            <label class="form-label fw-bold small"><i class="fa-solid fa-align-left me-1 text-primary"></i>Descrizione / Link o Dettagli</label>
+                                            <input type="text" class="form-control" id="inputDescFunzione" required placeholder="Es. Prenota il tuo pasto giornaliero entro le 10:00">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-custom-primary rounded-pill px-4 fw-bold"><i class="fa-solid fa-plus me-1"></i>Pubblica Nuova Funzione</button>
+                                </form>
+                            </div>
+
+                            <h6 class="fw-extrabold mb-3">Funzioni Extra Attive</h6>
+                            <div class="table-responsive">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr class="text-muted fs-7">
+                                            <th class="border-0"><i class="fa-solid fa-heading me-1 text-primary"></i>Titolo</th>
+                                            <th class="border-0"><i class="fa-solid fa-align-left me-1 text-primary"></i>Descrizione</th>
+                                            <th class="border-0 text-end"><i class="fa-solid fa-gears me-1 text-primary"></i>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabellaFunzioniAdmin"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 6: Personalizzazione Tema Colori & Stile -->
+                        <div class="tab-pane fade" id="personalizzazioneContenuto" role="tabpanel">
+                            <h5 class="fw-extrabold mb-3"><i class="fa-solid fa-palette text-primary me-2"></i>Personalizzazione Colori, Font e Stile Pulsanti</h5>
+                            <p class="text-muted small mb-4">Seleziona una palette di colori, il font tipografico e lo stile dei pulsanti per personalizzare l'aspetto grafico.</p>
+                            
+                            <div class="card p-4 border bg-light rounded-4 mb-4">
+                                <h6 class="fw-bold mb-3"><i class="fa-solid fa-font text-primary me-1"></i>Scegli Font Tipografico</h6>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-dark w-100 py-2 fw-bold" onclick="applicaFontTipografico('Plus Jakarta Sans')">Jakarta Sans</button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-dark w-100 py-2" style="font-family: 'Inter', sans-serif;" onclick="applicaFontTipografico('Inter')">Inter Modern</button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-dark w-100 py-2" style="font-family: 'Roboto', sans-serif;" onclick="applicaFontTipografico('Roboto')">Roboto Clean</button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-dark w-100 py-2" style="font-family: 'Poppins', sans-serif;" onclick="applicaFontTipografico('Poppins')">Poppins Soft</button>
+                                    </div>
+                                </div>
+
+                                <h6 class="fw-bold mb-3"><i class="fa-solid fa-square me-1 text-primary"></i>Forma e Stile Pulsanti</h6>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-4">
+                                        <button class="btn btn-primary w-100 py-2 rounded-pill fw-bold" onclick="applicaStilePulsanti('0.75rem', 'rounded-pill')">Arrotondati (Pill)</button>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-primary w-100 py-2 rounded-3 fw-bold" onclick="applicaStilePulsanti('0.5rem', 'rounded-3')">Leggermente Arrotondati</button>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-primary w-100 py-2 rounded-0 fw-bold" onclick="applicaStilePulsanti('0rem', 'rounded-0')">Quadrati / Squadrati</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6 class="fw-bold mb-3"><i class="fa-solid fa-palette text-primary me-1"></i>Palette Colori Disponibili</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="card p-3 border text-center shadow-sm" style="cursor: pointer;" onclick="applicaTemaColore('indigo')">
+                                        <div class="rounded-circle mx-auto mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #6366f1, #a855f7);"></div>
+                                        <h6 class="fw-bold mb-1">Modern Indigo</h6>
+                                        <small class="text-muted">Classico viola/blu</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card p-3 border text-center shadow-sm" style="cursor: pointer;" onclick="applicaTemaColore('royal')">
+                                        <div class="rounded-circle mx-auto mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2563eb, #7c3aed);"></div>
+                                        <h6 class="fw-bold mb-1">Royal Purple</h6>
+                                        <small class="text-muted">Blu Reale & Viola</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card p-3 border text-center shadow-sm" style="cursor: pointer;" onclick="applicaTemaColore('ocean')">
+                                        <div class="rounded-circle mx-auto mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #0284c7, #0d9488);"></div>
+                                        <h6 class="fw-bold mb-1">Ocean Breeze</h6>
+                                        <small class="text-muted">Azzurro & Ottanio</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card p-3 border text-center shadow-sm" style="cursor: pointer;" onclick="applicaTemaColore('emerald')">
+                                        <div class="rounded-circle mx-auto mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #059669, #34d399);"></div>
+                                        <h6 class="fw-bold mb-1">Emerald Forest</h6>
+                                        <small class="text-muted">Verde professionale</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card p-3 border text-center shadow-sm" style="cursor: pointer;" onclick="applicaTemaColore('sunset')">
+                                        <div class="rounded-circle mx-auto mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #f97316, #db2777);"></div>
+                                        <h6 class="fw-bold mb-1">Sunset Orange</h6>
+                                        <small class="text-muted">Arancione / Rosa</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card p-3 border text-center shadow-sm" style="cursor: pointer;" onclick="applicaTemaColore('dark')">
+                                        <div class="rounded-circle mx-auto mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #0f172a, #475569);"></div>
+                                        <h6 class="fw-bold mb-1">Dark Professional</h6>
+                                        <small class="text-muted">Grigio scuro / Acciaio</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card p-3 border text-center shadow-sm" style="cursor: pointer;" onclick="applicaTemaColore('ruby')">
+                                        <div class="rounded-circle mx-auto mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #e11d48, #be123c);"></div>
+                                        <h6 class="fw-bold mb-1">Ruby Red</h6>
+                                        <small class="text-muted">Rosso rubino elegante</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card p-3 border text-center shadow-sm" style="cursor: pointer;" onclick="applicaTemaColore('cyberpunk')">
+                                        <div class="rounded-circle mx-auto mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #06b6d4, #8b5cf6);"></div>
+                                        <h6 class="fw-bold mb-1">Cyberpunk Neon</h6>
+                                        <small class="text-muted">Ciano e Neon Viola</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card p-3 border text-center shadow-sm" style="cursor: pointer;" onclick="applicaTemaColore('gold')">
+                                        <div class="rounded-circle mx-auto mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #d97706, #b45309);"></div>
+                                        <h6 class="fw-bold mb-1">Golden Luxe</h6>
+                                        <small class="text-muted">Oro e Bronzo</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 6.5: Sicurezza e Cambio Password Admin / Assistente -->
+                        <div class="tab-pane fade" id="sicurezzaAdminContenuto" role="tabpanel">
+                            <h5 class="fw-extrabold mb-3"><i class="fa-solid fa-key text-primary me-2"></i>Modifica Password Univoca Admin / Assistente</h5>
+                            <p class="text-muted small mb-4">Imposta una password univoca e personalizzata per il tuo ruolo.</p>
+                            
+                            <div class="card p-4 border bg-light rounded-4" style="max-width: 500px;">
+                                <form id="formCambiaPassRuolo" onsubmit="eseguiCambioPasswordRuolo(event)">
+                                    <div class="mb-3">
+                                        <label for="passAttualeRuolo" class="form-label fw-bold small"><i class="fa-solid fa-lock me-1 text-primary"></i>Password Attuale</label>
+                                        <input type="password" class="form-control" id="passAttualeRuolo" required placeholder="Inserisci password attuale">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="passNuovaRuolo" class="form-label fw-bold small"><i class="fa-solid fa-key me-1 text-primary"></i>Nuova Password Univoca</label>
+                                        <input type="password" class="form-control" id="passNuovaRuolo" required placeholder="Inserisci nuova password">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="passConfermaRuolo" class="form-label fw-bold small"><i class="fa-solid fa-check-double me-1 text-primary"></i>Conferma Nuova Password</label>
+                                        <input type="password" class="form-control" id="passConfermaRuolo" required placeholder="Ripeti nuova password">
+                                    </div>
+                                    <button type="submit" class="btn btn-custom-primary rounded-pill px-4 fw-bold"><i class="fa-solid fa-shield-halved me-1"></i>Aggiorna Password</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- TAB 7: Statistiche e KPI -->
+                        <div class="tab-pane fade" id="statisticheContenuto" role="tabpanel">
+                            <h5 class="fw-extrabold mb-3"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Analisi e Statistiche Aziendali</h5>
+                            <p class="text-muted small mb-4">Ripartizione delle motivazioni di assenza e indicatori di performance del personale.</p>
+                            
+                            <div class="row g-4 align-items-center">
+                                <div class="col-lg-6">
+                                    <div class="p-4 bg-light rounded-4 border">
+                                        <div id="containerBarreStatistiche"></div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="card p-4 border shadow-sm rounded-4">
+                                        <h6 class="fw-extrabold text-dark mb-3"><i class="fa-solid fa-circle-info text-primary me-2"></i>Riepilogo Avanzato</h6>
+                                        <div id="riassuntoStatisticheTesto" class="small text-muted"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODALE AGGIUNGI DIPENDENTE (ADMIN) -->
+    <div class="modal fade" id="modalAggiungiDipendente" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-extrabold text-dark"><i class="fa-solid fa-user-plus text-primary me-2"></i>Aggiungi Nuovo Dipendente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formAggiungiDip" onsubmit="registraNuovoDipendenteAdmin(event)">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small"><i class="fa-solid fa-user me-1 text-primary"></i>Nome e Cognome</label>
+                            <input type="text" class="form-control" id="adminNewNome" required placeholder="Es. Anna Verdi">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small"><i class="fa-solid fa-lock me-1 text-primary"></i>Password Iniziale</label>
+                            <input type="password" class="form-control" id="adminNewPass" required placeholder="Password temporanea">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small"><i class="fa-solid fa-question me-1 text-primary"></i>Domanda Segreta</label>
+                            <select class="form-select mb-2" id="adminNewDomanda" required onchange="gestisciInputDomandaPersonalizzataAdmin(this)">
+                                <option value="Nome della tua città natale?">Nome della tua città natale?</option>
+                                <option value="Nome del tuo primo animale domestico?">Nome del tuo primo animale domestico?</option>
+                                <option value="personalizzata">+ Scrivi una domanda personalizzata...</option>
+                            </select>
+                            <input type="text" class="form-control hidden mt-2" id="adminNewDomandaCustom" placeholder="Scrivi qui la domanda...">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small"><i class="fa-solid fa-comment me-1 text-primary"></i>Risposta Segreta</label>
+                            <input type="text" class="form-control" id="adminNewRisposta" required placeholder="Risposta...">
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annulla</button>
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold"><i class="fa-solid fa-check me-1"></i>Crea Dipendente</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript Logica Completa v9 -->
+    <script>
+        let adminPasswordHash = localStorage.getItem('adminPassHashV9') || "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"; // Default '1234'
+        let assistentePasswordHash = localStorage.getItem('assistentePassHashV9') || "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"; // Default '1234'
+        
+        let richieste = JSON.parse(localStorage.getItem('richiesteFerieModernaV9')) || [];
+        let utentiDB = JSON.parse(localStorage.getItem('utentiDBV9')) || {};
+        let funzioniExtra = JSON.parse(localStorage.getItem('funzioniExtraV9')) || [];
+        let messaggiAssistenteAdmin = JSON.parse(localStorage.getItem('messaggiAssistenteAdminV9')) || [];
+        let utenteCorrente = localStorage.getItem('utenteCorrenteFerieV9') || '';
+        let comunicazioneHR = localStorage.getItem('comunicazioneHRV9') || '';
+        let sogliaMaxFerie = parseInt(localStorage.getItem('sogliaMaxFerieV9')) || 3;
+        let temaCorrente = localStorage.getItem('temaColoreV9') || 'indigo';
+        let fontCorrente = localStorage.getItem('fontCorrenteV9') || 'Plus Jakarta Sans';
+        let stilePulsantiCorrente = localStorage.getItem('stilePulsantiV9') || 'rounded-pill';
+        let btnRadiusCorrente = localStorage.getItem('btnRadiusV9') || '0.75rem';
+
+        let inModalitaAdmin = false;
+        let inModalitaAssistente = false;
+        let filtroStatoAdmin = 'Tutti';
+        let dataCorrenteCalendarDip = new Date();
+        let dataCorrenteCalendarAdmin = new Date();
+        let utenteInRegistrazione = '';
+
+        async function hashString(string) {
+            const utf8 = new TextEncoder().encode(string);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('inputSogliaMaxFerie').value = sogliaMaxFerie;
+            applicaTemaColore(temaCorrente, false);
+            applicaFontTipografico(fontCorrente, false);
+            applicaStilePulsanti(btnRadiusCorrente, stilePulsantiCorrente, false);
+            if (utenteCorrente) {
+                attivaVistaUtente(utenteCorrente);
+            }
+        });
+
+        window.applicaFontTipografico = function(fontName, salva = true) {
+            fontCorrente = fontName;
+            if(salva) localStorage.setItem('fontCorrenteV9', fontName);
+
+            let fontLinkURL = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap";
+            if (fontName === 'Inter') fontLinkURL = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap";
+            if (fontName === 'Roboto') fontLinkURL = "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap";
+            if (fontName === 'Poppins') fontLinkURL = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap";
+
+            document.getElementById('googleFontLink').href = fontLinkURL;
+            document.documentElement.style.setProperty('--font-family', `'${fontName}', sans-serif`);
+            if(salva) alert("Font tipografico aggiornato con successo!");
+        }
+
+        window.applicaStilePulsanti = function(radius, cssClass, salva = true) {
+            btnRadiusCorrente = radius;
+            stilePulsantiCorrente = cssClass;
+            if(salva) {
+                localStorage.setItem('btnRadiusV9', radius);
+                localStorage.setItem('stilePulsantiV9', cssClass);
+                alert("Stile pulsanti aggiornato con successo!");
+            }
+            document.documentElement.style.setProperty('--btn-radius', radius);
+        }
+
+        window.applicaTemaColore = function(tema, salva = true) {
+            temaCorrente = tema;
+            if(salva) localStorage.setItem('temaColoreV9', tema);
+            
+            let gradiente = "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)";
+            let primaryColor = "#4f46e5";
+
+            if (tema === 'royal') {
+                gradiente = "linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%)";
+                primaryColor = "#2563eb";
+            } else if (tema === 'ocean') {
+                gradiente = "linear-gradient(135deg, #0284c7 0%, #0891b2 50%, #0d9488 100%)";
+                primaryColor = "#0284c7";
+            } else if (tema === 'emerald') {
+                gradiente = "linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)";
+                primaryColor = "#059669";
+            } else if (tema === 'sunset') {
+                gradiente = "linear-gradient(135deg, #f97316 0%, #ea580c 50%, #db2777 100%)";
+                primaryColor = "#f97316";
+            } else if (tema === 'dark') {
+                gradiente = "linear-gradient(135deg, #0f172a 0%, #334155 50%, #475569 100%)";
+                primaryColor = "#0f172a";
+            } else if (tema === 'ruby') {
+                gradiente = "linear-gradient(135deg, #e11d48 0%, #f43f5e 50%, #be123c 100%)";
+                primaryColor = "#e11d48";
+            } else if (tema === 'cyberpunk') {
+                gradiente = "linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%)";
+                primaryColor = "#06b6d4";
+            } else if (tema === 'gold') {
+                gradiente = "linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #b45309 100%)";
+                primaryColor = "#d97706";
+            }
+
+            document.documentElement.style.setProperty('--primary', primaryColor);
+            document.documentElement.style.setProperty('--accent-gradient', gradiente);
+            
+            if(salva) alert("Tema colore aggiornato con successo!");
+        }
+
+        window.gestisciVisibilitaOrari = function() {
+            const tipo = document.getElementById('tipoRichiesta').value;
+            const boxOrario = document.getElementById('boxCampiOrario');
+            if (tipo === 'Permesso Orario') {
+                boxOrario.classList.remove('hidden');
+            } else {
+                boxOrario.classList.add('hidden');
+            }
+        }
+
+        window.gestisciInputDomandaPersonalizzata = function(select) {
+            const inputCustom = document.getElementById('inputDomandaPersonalizzata');
+            if (select.value === 'personalizzata') {
+                inputCustom.classList.remove('hidden');
+                inputCustom.required = true;
+            } else {
+                inputCustom.classList.add('hidden');
+                inputCustom.required = false;
+            }
+        }
+
+        window.gestisciInputDomandaPersonalizzataAdmin = function(select) {
+            const inputCustom = document.getElementById('adminNewDomandaCustom');
+            if (select.value === 'personalizzata') {
+                inputCustom.classList.remove('hidden');
+                inputCustom.required = true;
+            } else {
+                inputCustom.classList.add('hidden');
+                inputCustom.required = false;
+            }
+        }
+
+        async function effettuaLoginUtente(e) {
+            e.preventDefault();
+            const nome = document.getElementById('inputLoginNome').value.trim();
+            const password = document.getElementById('inputLoginPassword').value;
+            if(!nome || !password) return;
+
+            const passHash = await hashString(password);
+
+            if (utentiDB[nome]) {
+                if (utentiDB[nome].password !== passHash) {
+                    alert("Password non corretta!");
+                    return;
+                }
+                utenteCorrente = nome;
+                localStorage.setItem('utenteCorrenteFerieV9', utenteCorrente);
+                document.getElementById('inputLoginNome').value = '';
+                document.getElementById('inputLoginPassword').value = '';
+                attivaVistaUtente(utenteCorrente);
+            } else {
+                utenteInRegistrazione = nome;
+                window.tempPassReg = passHash;
+                const modal = new bootstrap.Modal(document.getElementById('modalImpostaDomandaSegreta'));
+                modal.show();
+            }
+        }
+
+        async function salvaCredenzialiPrimoAccesso(e) {
+            e.preventDefault();
+            let domanda = document.getElementById('selectDomanda').value;
+            if (domanda === 'personalizzata') {
+                domanda = document.getElementById('inputDomandaPersonalizzata').value.trim();
+            }
+            const risposta = document.getElementById('inputRispostaReg').value.trim().toLowerCase();
+            const rispostaHash = await hashString(risposta);
+
+            utentiDB[utenteInRegistrazione] = {
+                password: window.tempPassReg,
+                domanda: domanda,
+                risposta: rispostaHash
+            };
+
+            localStorage.setItem('utentiDBV9', JSON.stringify(utentiDB));
+            
+            const modalEl = document.getElementById('modalImpostaDomandaSegreta');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+
+            utenteCorrente = utenteInRegistrazione;
+            localStorage.setItem('utenteCorrenteFerieV9', utenteCorrente);
+            document.getElementById('formImpostaSegreto').reset();
+            document.getElementById('inputDomandaPersonalizzata').classList.add('hidden');
+            attivaVistaUtente(utenteCorrente);
+        }
+
+        window.verificaDomandaSegretaDipendente = function() {
+            const nome = document.getElementById('inputRecuperoNome').value.trim();
+            const labelDomanda = document.getElementById('labelDomandaSegreta');
+            if (utentiDB[nome]) {
+                labelDomanda.innerText = utentiDB[nome].domanda;
+            } else {
+                labelDomanda.innerText = nome ? "Utente non trovato nel sistema." : "Inserisci prima il tuo nome sopra...";
+            }
+        }
+
+        async function eseguiRecuperoPassword(e) {
+            e.preventDefault();
+            const nome = document.getElementById('inputRecuperoNome').value.trim();
+            const risposta = document.getElementById('inputRispostaSegreta').value.trim().toLowerCase();
+            const nuovaPass = document.getElementById('inputNuovaPassword').value;
+
+            if (!utentiDB[nome]) {
+                alert("Utente inesistente.");
+                return;
+            }
+
+            const rispostaHash = await hashString(risposta);
+            if (utentiDB[nome].risposta !== rispostaHash) {
+                alert("Risposta segreta errata!");
+                return;
+            }
+
+            const nuovaPassHash = await hashString(nuovaPass);
+            utentiDB[nome].password = nuovaPassHash;
+            localStorage.setItem('utentiDBV9', JSON.stringify(utentiDB));
+            alert("Password aggiornata con successo! Ora puoi effettuare il login.");
+            document.getElementById('formRecuperoPassword').reset();
+            document.getElementById('labelDomandaSegreta').innerText = "Inserisci prima il tuo nome sopra...";
+            
+            const tabLogin = new bootstrap.Tab(document.getElementById('tab-login-btn'));
+            tabLogin.show();
+        }
+
+        function attivaVistaUtente(nome) {
+            document.getElementById('schermataLoginDipendente').classList.add('hidden');
+            document.getElementById('vistaDipendente').classList.remove('hidden');
+            document.getElementById('badgeAreaRiservataUtente').classList.remove('hidden');
+            document.getElementById('labelNomeUtenteCorrente').innerText = nome;
+            
+            if (comunicazioneHR) {
+                document.getElementById('bachecaComunicazioniDipendente').classList.remove('hidden');
+                document.getElementById('testoComunicazioneAttiva').innerText = comunicazioneHR;
+            } else {
+                document.getElementById('bachecaComunicazioniDipendente').classList.add('hidden');
+            }
+
+            renderizzaFunzioniExtraDipendente();
+            aggiornaDatiUtenteCorrente();
+        }
+
+        function renderizzaFunzioniExtraDipendente() {
+            const containerSec = document.getElementById('sezioneFunzioniExtraDipendente');
+            const listaDiv = document.getElementById('listaFunzioniExtraContainer');
+            if (funzioniExtra.length > 0) {
+                containerSec.classList.remove('hidden');
+                let html = '';
+                funzioniExtra.forEach(f => {
+                    html += `
+                        <div class="col-md-4">
+                            <div class="card p-3 border shadow-sm bg-white rounded-3 h-100">
+                                <h6 class="fw-extrabold text-primary mb-1"><i class="fa-solid fa-circle-check me-1"></i>${f.titolo}</h6>
+                                <p class="small text-muted mb-0">${f.desc}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                listaDiv.innerHTML = html;
+            } else {
+                containerSec.classList.add('hidden');
+            }
+        }
+
+        window.cambiaUtente = function() {
+            if(confirm("Vuoi uscire dal tuo account?")) {
+                utenteCorrente = '';
+                localStorage.removeItem('utenteCorrenteFerieV9');
+                document.getElementById('vistaDipendente').classList.add('hidden');
+                document.getElementById('badgeAreaRiservataUtente').classList.add('hidden');
+                document.getElementById('notifDipendenteContainer').classList.add('hidden');
+                document.getElementById('schermataLoginDipendente').classList.remove('hidden');
+            }
+        }
+
+        function salvaESci() {
+            localStorage.setItem('richiesteFerieModernaV9', JSON.stringify(richieste));
+            aggiornaContatoriAdmin();
+            if(inModalitaAdmin || inModalitaAssistente) {
+                aggiornaTabellaAdmin();
+                disegnaCalendarioAdmin();
+                aggiornaListaDipendentiAdmin();
+            }
+            if(utenteCorrente) {
+                aggiornaDatiUtenteCorrente();
+            }
+        }
+
+        window.inviaNuovaRichiesta = function(e) {
+            e.preventDefault();
+            const dataInizio = document.getElementById('dataInizio').value;
+            const dataFine = document.getElementById('dataFine').value;
+            const alertErrore = document.getElementById('alertErroreDate');
+            const tipo = document.getElementById('tipoRichiesta').value;
+
+            if (dataFine < dataInizio) {
+                alertErrore.classList.remove('hidden');
+                return;
+            } else {
+                alertErrore.classList.add('hidden');
+            }
+
+            // Controllo soglia massima ferie / slot giornalieri
+            let superaLimite = false;
+            let dStart = new Date(dataInizio);
+            let dEnd = new Date(dataFine);
+            
+            for (let d = new Date(dStart); d <= dEnd; d.setDate(d.getDate() + 1)) {
+                let isoStr = d.toISOString().slice(0, 10);
+                let countAssentiGiorno = 0;
+                richieste.forEach(r => {
+                    if (r.stato === 'Approvata' && isoStr >= r.dataInizio && isoStr <= r.dataFine) {
+                        countAssentiGiorno++;
+                    }
+                });
+                if (countAssentiGiorno >= sogliaMaxFerie) {
+                    superaLimite = true;
+                    break;
+                }
+            }
+
+            if (superaLimite) {
+                const modalSlot = new bootstrap.Modal(document.getElementById('modalSlotPieni'));
+                modalSlot.show();
+                return;
+            }
+
+            let noteDettaglio = document.getElementById('note').value;
+            if (tipo === 'Permesso Orario') {
+                const oraInizio = document.getElementById('oraInizio').value;
+                const oraFine = document.getElementById('oraFine').value;
+                noteDettaglio = `Orario: ${oraInizio} - ${oraFine}. ` + noteDettaglio;
+            }
+
+            const nuovaRichiesta = {
+                id: Date.now(),
+                nome: utenteCorrente,
+                tipo: tipo,
+                dataInizio: dataInizio,
+                dataFine: dataFine,
+                note: noteDettaglio,
+                motivoRifiuto: '',
+                stato: 'In attesa',
+                lettaDaDipendente: true
+            };
+
+            richieste.push(nuovaRichiesta);
+            salvaESci();
+
+            const modalEl = document.getElementById('modalNuovaRichiesta');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            document.getElementById('formFerie').reset();
+            document.getElementById('boxCampiOrario').classList.add('hidden');
+            aggiornaDatiUtenteCorrente();
+        }
+
+        function aggiornaDatiUtenteCorrente() {
+            const tabella = document.getElementById('tabellaMieiDati');
+            const contBadge = document.getElementById('conteggioMieRichieste');
+            tabella.innerHTML = '';
+
+            const mieRichieste = richieste.filter(r => r.nome.toLowerCase() === utenteCorrente.toLowerCase());
+            contBadge.innerText = `${mieRichieste.length} richieste`;
+
+            richieste.forEach(r => {
+                if(r.nome.toLowerCase() === utenteCorrente.toLowerCase()) r.lettaDaDipendente = true;
+            });
+            localStorage.setItem('richiesteFerieModernaV9', JSON.stringify(richieste));
+            aggiornaNotificheDipendente();
+
+            if (mieRichieste.length === 0) {
+                tabella.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4 small">Nessuna richiesta effettuata. Clicca su "Nuova Richiesta" in alto.</td></tr>`;
+            } else {
+                mieRichieste.forEach(req => {
+                    let badgeClass = 'badge-pending';
+                    let testoStato = 'In attesa';
+                    if (req.stato === 'Approvata') { badgeClass = 'badge-approved'; testoStato = 'Approvata'; }
+                    if (req.stato === 'Rifiutata') { badgeClass = 'badge-rejected'; testoStato = 'Rifiutata'; }
+
+                    let infoNote = req.note || '-';
+                    if (req.stato === 'Rifiutata' && req.motivoRifiuto) {
+                        infoNote += `<br><span class="text-danger small fw-bold"><i class="fa-solid fa-circle-exclamation me-1"></i>Motivo rifiuto: ${req.motivoRifiuto}</span>`;
+                    }
+
+                    tabella.innerHTML += `
+                        <tr>
+                            <td>
+                                <strong class="text-dark"><i class="fa-solid fa-tag me-1 text-primary"></i>${req.tipo}</strong><br>
+                                <small class="text-muted"><i class="fa-solid fa-calendar-days me-1"></i>${formattaData(req.dataInizio)} al ${formattaData(req.dataFine)}</small>
+                            </td>
+                            <td><span class="text-muted small">${infoNote}</span></td>
+                            <td class="text-end"><span class="badge-status ${badgeClass}">${testoStato}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+            disegnaCalendarioDip();
+        }
+
+        function aggiornaNotificheDipendente() {
+            if (!utenteCorrente) return;
+            const container = document.getElementById('notifDipendenteContainer');
+            const badge = document.getElementById('badgeNotifDip');
+            const lista = document.getElementById('listaNotifDip');
+
+            container.classList.remove('hidden');
+            const mieRichieste = richieste.filter(r => r.nome.toLowerCase() === utenteCorrente.toLowerCase());
+            const nonLette = mieRichieste.filter(r => r.lettaDaDipendente === false);
+
+            if (nonLette.length > 0) {
+                badge.classList.remove('hidden');
+                let html = `<li><h6 class="dropdown-header fw-bold"><i class="fa-solid fa-bell me-1"></i>Aggiornamenti Stato (${nonLette.length})</h6></li><li><hr class="dropdown-divider"></li>`;
+                nonLette.forEach(nr => {
+                    html += `<li><span class="dropdown-item-text small"><i class="fa-solid fa-circle-info me-1 text-primary"></i>La tua richiesta di <strong>${nr.tipo}</strong> (${formattaData(nr.dataInizio)}) ora è: <strong>${nr.stato}</strong></span></li>`;
+                });
+                lista.innerHTML = html;
+            } else {
+                badge.classList.add('hidden');
+                lista.innerHTML = `<li><h6 class="dropdown-header fw-bold"><i class="fa-solid fa-bell me-1"></i>Aggiornamenti Richieste</h6></li><li><hr class="dropdown-divider"></li><li><span class="dropdown-item-text text-muted small">Nessuna nuova notifica</span></li>`;
+            }
+        }
+
+        window.cambiaMeseCalendarioDip = function(delta) {
+            dataCorrenteCalendarDip.setMonth(dataCorrenteCalendarDip.getMonth() + delta);
+            disegnaCalendarioDip();
+        }
+
+        function disegnaCalendarioDip() {
+            const container = document.getElementById('grigliaCalendarioDipContainer');
+            const labelMese = document.getElementById('labelMeseCorrenteDip');
+            
+            const anno = dataCorrenteCalendarDip.getFullYear();
+            const mese = dataCorrenteCalendarDip.getMonth();
+            const nomiMesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+            labelMese.innerText = `${nomiMesi[mese]} ${anno}`;
+
+            let html = `<div class="calendar-grid mb-2">`;
+            ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].forEach(g => {
+                html += `<div class="calendar-day-header">${g}</div>`;
+            });
+            html += `</div><div class="calendar-grid">`;
+
+            const primoGiornoMese = new Date(anno, mese, 1);
+            let giornoSettimanaInizio = primoGiornoMese.getDay() - 1;
+            if (giornoSettimanaInizio === -1) giornoSettimanaInizio = 6;
+
+            const ultimoGiornoMese = new Date(anno, mese + 1, 0).getDate();
+            const ultimoGiornoMesePrec = new Date(anno, mese, 0).getDate();
+            let totaleCelle = Math.ceil((giornoSettimanaInizio + ultimoGiornoMese) / 7) * 7;
+
+            const mieRichieste = richieste.filter(r => r.nome.toLowerCase() === utenteCorrente.toLowerCase());
+
+            for (let i = 0; i < totaleCelle; i++) {
+                let numGiorno, classeMese = "", annoCell = anno, meseCell = mese;
+
+                if (i < giornoSettimanaInizio) {
+                    numGiorno = ultimoGiornoMesePrec - (giornoSettimanaInizio - 1 - i);
+                    classeMese = "other-month";
+                    meseCell = mese - 1;
+                    if(meseCell < 0) { meseCell = 11; annoCell--; }
+                } else if (i >= giornoSettimanaInizio + ultimoGiornoMese) {
+                    numGiorno = i - (giornoSettimanaInizio + ultimoGiornoMese) + 1;
+                    classeMese = "other-month";
+                    meseCell = mese + 1;
+                    if(meseCell > 11) { meseCell = 0; annoCell++; }
+                } else {
+                    numGiorno = i - giornoSettimanaInizio + 1;
+                }
+
+                let dataIsoCell = `${annoCell}-${String(meseCell + 1).padStart(2, '0')}-${String(numGiorno).padStart(2, '0')}`;
+                let eventiGiorno = '';
+                mieRichieste.forEach(r => {
+                    if (dataIsoCell >= r.dataInizio && dataIsoCell <= r.dataFine) {
+                        let tipoEv = r.stato === 'Approvata' ? 'approved' : (r.stato === 'In attesa' ? 'pending' : (r.stato === 'Rifiutata' ? 'rejected' : ''));
+                        if(tipoEv) {
+                            eventiGiorno += `<div class="cal-event ${tipoEv}" title="${r.tipo}">${r.tipo}</div>`;
+                        }
+                    }
+                });
+
+                html += `
+                    <div class="calendar-cell ${classeMese}">
+                        <div class="calendar-date-num">${numGiorno}</div>
+                        ${eventiGiorno}
+                    </div>
+                `;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        window.gestisciAccessoAdmin = async function() {
+            if (!inModalitaAdmin) {
+                let pin = prompt("Inserisci la password Amministratore:");
+                if (pin !== null) {
+                    let pinHash = await hashString(pin);
+                    if (pinHash === adminPasswordHash) {
+                        inModalitaAdmin = true;
+                        inModalitaAssistente = false;
+                        configuraInterfacciaAdminModo(false);
+                    } else {
+                        alert("Password errata!");
+                    }
+                }
+            } else {
+                tornaVistaPrincipale();
+            }
+        }
+
+        window.gestisciAccessoAssistenteAdmin = async function() {
+            if (!inModalitaAssistente) {
+                let pin = prompt("Inserisci la password Assistente Admin:");
+                if (pin !== null) {
+                    let pinHash = await hashString(pin);
+                    if (pinHash === assistentePasswordHash) {
+                        inModalitaAssistente = true;
+                        inModalitaAdmin = false;
+                        configuraInterfacciaAdminModo(true);
+                    } else {
+                        alert("Password Assistente errata!");
+                    }
+                }
+            } else {
+                tornaVistaPrincipale();
+            }
+        }
+
+        function configuraInterfacciaAdminModo(isAssistente) {
+            document.getElementById('schermataLoginDipendente').classList.add('hidden');
+            document.getElementById('vistaDipendente').classList.add('hidden');
+            document.getElementById('badgeAreaRiservataUtente').classList.add('hidden');
+            document.getElementById('notifDipendenteContainer').classList.add('hidden');
+            document.getElementById('vistaAdmin').classList.remove('hidden');
+
+            const titolo = document.getElementById('titoloPannelloAdmin');
+            const sottotitolo = document.getElementById('sottotitoloPannelloAdmin');
+            const testoPulsanteEsci = document.getElementById('testoPulsanteEsciAdmin');
+
+            const navDipendenti = document.getElementById('navItemDipendenti');
+            const navComunicazioni = document.getElementById('navItemComunicazioni');
+            const navAssistenteCom = document.getElementById('navItemAssistenteCom');
+            const navFunzioni = document.getElementById('navItemFunzioni');
+            const navPersonalizzazione = document.getElementById('navItemPersonalizzazione');
+            const navSicurezzaAdmin = document.getElementById('navItemSicurezzaAdmin');
+
+            if (isAssistente) {
+                titolo.innerHTML = `<i class="fa-solid fa-eye text-primary me-2"></i>Assistente Admin (Gestione & Comunicazione)`;
+                sottotitolo.innerText = `Modalità consultazione planning, richieste e invio messaggi diretti all'Admin.`;
+                testoPulsanteEsci.innerText = "Esci Assistente";
+                
+                if(navDipendenti) navDipendenti.classList.add('hidden');
+                if(navComunicazioni) navComunicazioni.classList.add('hidden');
+                if(navAssistenteCom) navAssistenteCom.classList.remove('hidden');
+                if(navFunzioni) navFunzioni.classList.add('hidden');
+                if(navPersonalizzazione) navPersonalizzazione.classList.add('hidden');
+                if(navSicurezzaAdmin) navSicurezzaAdmin.classList.remove('hidden');
+            } else {
+                titolo.innerHTML = `<i class="fa-solid fa-gauge-high text-primary me-2"></i>Pannello di Controllo HR Admin PRO`;
+                sottotitolo.innerText = `Gestione centralizzata del personale, anagrafiche, importazioni Excel e reportistica avanzata.`;
+                testoPulsanteEsci.innerText = "Esci Admin";
+
+                if(navDipendenti) navDipendenti.classList.remove('hidden');
+                if(navComunicazioni) navComunicazioni.classList.remove('hidden');
+                if(navAssistenteCom) navAssistenteCom.classList.add('hidden');
+                if(navFunzioni) navFunzioni.classList.remove('hidden');
+                if(navPersonalizzazione) navPersonalizzazione.classList.remove('hidden');
+                if(navSicurezzaAdmin) navSicurezzaAdmin.classList.remove('hidden');
+            }
+
+            document.getElementById('testoPulsanteAdmin').innerText = "Area Admin";
+            document.getElementById('btnCambiaVista').classList.replace('btn-outline-primary', 'btn-primary');
+
+            aggiornaContatoriAdmin();
+            aggiornaTabellaAdmin();
+            aggiornaListaMessaggiAssistente();
+        }
+
+        function tornaVistaPrincipale() {
+            inModalitaAdmin = false;
+            inModalitaAssistente = false;
+            document.getElementById('vistaAdmin').classList.add('hidden');
+            document.getElementById('testoPulsanteAdmin').innerText = "Area Admin";
+            document.getElementById('btnCambiaVista').classList.replace('btn-primary', 'btn-outline-primary');
+            
+            const elements = ['navItemDipendenti', 'navItemComunicazioni', 'navItemAssistenteCom', 'navItemFunzioni', 'navItemPersonalizzazione', 'navItemSicurezzaAdmin'];
+            elements.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.remove('hidden');
+            });
+
+            if (utenteCorrente) {
+                attivaVistaUtente(utenteCorrente);
+            } else {
+                document.getElementById('schermataLoginDipendente').classList.remove('hidden');
+            }
+            aggiornaContatoriAdmin();
+        }
+
+        function aggiornaContatoriAdmin() {
+            const pending = richieste.filter(r => r.stato === 'In attesa').length;
+            const approved = richieste.filter(r => r.stato === 'Approvata').length;
+            const rejected = richieste.filter(r => r.stato === 'Rifiutata').length;
+            
+            document.getElementById('countPending').innerText = pending;
+            document.getElementById('countApproved').innerText = approved;
+            document.getElementById('countRejected').innerText = rejected;
+            document.getElementById('countTotal').innerText = richieste.length;
+
+            const badgeAdminNotif = document.getElementById('badgeAdminNotif');
+            let totaleNotificheAdmin = pending + messaggiAssistenteAdmin.length;
+            if (totaleNotificheAdmin > 0) {
+                badgeAdminNotif.innerText = totaleNotificheAdmin;
+                badgeAdminNotif.classList.remove('hidden');
+            } else {
+                badgeAdminNotif.classList.add('hidden');
+            }
+        }
+
+        window.impostaFiltroAdmin = function(stato) {
+            filtroStatoAdmin = stato;
+            ['Tutti', 'In attesa', 'Approvata', 'Rifiutata'].forEach(s => {
+                const btnId = 'btnFiltro' + (s === 'Tutti' ? 'Tutti' : s.replace(' ', ''));
+                const btn = document.getElementById(btnId);
+                if(btn) {
+                    if(s === stato) {
+                        btn.className = 'btn btn-sm ' + (s === 'In attesa' ? 'btn-warning text-dark' : s === 'Approvata' ? 'btn-success' : s === 'Rifiutata' ? 'btn-danger' : 'btn-dark') + ' rounded-pill px-3 fw-bold';
+                    } else {
+                        btn.className = 'btn btn-sm ' + (s === 'In attesa' ? 'btn-outline-warning text-dark' : s === 'Approvata' ? 'btn-outline-success' : s === 'Rifiutata' ? 'btn-outline-danger' : 'btn-outline-dark') + ' rounded-pill px-3 fw-bold';
+                    }
+                }
+            });
+            aggiornaTabellaAdmin();
+        }
+
+        function aggiornaTabellaAdmin() {
+            const tabella = document.getElementById('tabellaAdmin');
+            tabella.innerHTML = '';
+
+            let filtrate = richieste;
+            if (filtroStatoAdmin !== 'Tutti') {
+                filtrate = richieste.filter(r => r.stato === filtroStatoAdmin);
+            }
+
+            if (filtrate.length === 0) {
+                tabella.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4 small">Nessuna richiesta trovata.</td></tr>`;
+                return;
+            }
+
+            filtrate.forEach((req) => {
+                let badgeClass = 'badge-pending';
+                if (req.stato === 'Approvata') badgeClass = 'badge-approved';
+                if (req.stato === 'Rifiutata') badgeClass = 'badge-rejected';
+
+                let infoNote = req.note || '-';
+                if (req.stato === 'Rifiutata' && req.motivoRifiuto) {
+                    infoNote += `<br><span class="text-danger small fw-bold">Motivo: ${req.motivoRifiuto}</span>`;
+                }
+
+                let azioniHtml = '';
+                if (!inModalitaAssistente) {
+                    azioniHtml = `
+                        <button class="btn btn-sm btn-success rounded-3 px-2 me-1 shadow-sm" onclick="cambiaStato(${req.id}, 'Approvata')" title="Approva"><i class="fa-solid fa-check"></i></button>
+                        <button class="btn btn-sm btn-danger rounded-3 px-2 me-1 shadow-sm" onclick="richiediMotivoRifiuto(${req.id})" title="Rifiuta"><i class="fa-solid fa-xmark"></i></button>
+                        <button class="btn btn-sm btn-light border rounded-3 px-2 text-muted shadow-sm" onclick="elimina(${req.id})" title="Elimina"><i class="fa-solid fa-trash"></i></button>
+                    `;
+                } else {
+                    azioniHtml = `<span class="badge bg-light text-muted border">Sola lettura</span>`;
+                }
+
+                tabella.innerHTML += `
+                    <tr>
+                        <td><strong><i class="fa-solid fa-user me-1 text-primary"></i>${req.nome}</strong></td>
+                        <td><span class="badge bg-light text-primary border">${req.tipo}</span></td>
+                        <td><i class="fa-solid fa-calendar-days me-1 text-muted"></i>${formattaData(req.dataInizio)} al ${formattaData(req.dataFine)}</td>
+                        <td><span class="text-muted small">${infoNote}</span></td>
+                        <td><span class="badge-status ${badgeClass}">${req.stato}</span></td>
+                        <td class="text-end">${azioniHtml}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.richiediMotivoRifiuto = function(id) {
+            if (inModalitaAssistente) return;
+            let motivo = prompt("Inserisci il motivo del rifiuto (opzionale):");
+            if (motivo !== null) {
+                const req = richieste.find(r => r.id === id);
+                if (req) {
+                    req.stato = 'Rifiutata';
+                    req.motivoRifiuto = motivo.trim() || 'Nessuna motivazione specificata dall\'amministratore.';
+                    req.lettaDaDipendente = false;
+                    salvaESci();
+                }
+            }
+        }
+
+        window.aggiornaListaDipendentiAdmin = function() {
+            if (inModalitaAssistente) return;
+            const tabella = document.getElementById('tabellaDipendentiAdmin');
+            tabella.innerHTML = '';
+
+            const nomiKeys = Object.keys(utentiDB);
+            if (nomiKeys.length === 0) {
+                tabella.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4 small">Nessun dipendente registrato. Puoi aggiungerli manualmente o importare un file Excel.</td></tr>`;
+                return;
+            }
+
+            nomiKeys.forEach(nome => {
+                const info = utentiDB[nome];
+                tabella.innerHTML += `
+                    <tr>
+                        <td><strong class="text-dark"><i class="fa-solid fa-user-tie text-primary me-2"></i>${nome}</strong></td>
+                        <td><span class="text-muted small"><i class="fa-solid fa-shield-halved me-1 text-primary"></i>${info.domanda}</span></td>
+                        <td class="str-end text-end">
+                            <button class="btn btn-sm btn-outline-warning text-dark rounded-3 px-2 me-1 shadow-sm" onclick="resetPasswordDipendenteAdmin('${nome}')" title="Reset Password"><i class="fa-solid fa-key"></i></button>
+                            <button class="btn btn-sm btn-outline-danger rounded-3 px-2 shadow-sm" onclick="eliminaDipendente('${nome}')" title="Elimina Dipendente"><i class="fa-solid fa-user-slash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Funzione di importazione dipendenti da Excel
+        window.importaDipendentiDaExcel = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    let importatiCount = 0;
+                    for (let i = 1; i < json.length; i++) {
+                        let row = json[i];
+                        if (row && row[0]) {
+                            let nome = String(row[0]).trim();
+                            let passTemp = row[1] ? String(row[1]).trim() : "password123";
+                            let domanda = row[2] ? String(row[2]).trim() : "Nome della tua città natale?";
+                            let risposta = row[3] ? String(row[3]).trim().toLowerCase() : "roma";
+
+                            if (nome && !utentiDB[nome]) {
+                                let passHash = await hashString(passTemp);
+                                let rispostaHash = await hashString(risposta);
+                                utentiDB[nome] = {
+                                    password: passHash,
+                                    domanda: domanda,
+                                    risposta: rispostaHash
+                                };
+                                importatiCount++;
+                            }
+                        }
+                    }
+
+                    localStorage.setItem('utentiDBV9', JSON.stringify(utentiDB));
+                    aggiornaListaDipendentiAdmin();
+                    alert(`Importazione completata con successo! Aggiunti ${importatiCount} nuovi dipendenti.`);
+                } catch (err) {
+                    console.error(err);
+                    alert("Errore durante la lettura del file Excel. Assicurati che il formato sia corretto (Colonne: Nome, Password, Domanda, Risposta).");
+                }
+                event.target.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function resetPasswordDipendenteAdmin(nome) {
+            if (inModalitaAssistente) return;
+            let nuovaPass = prompt(`Inserisci la nuova password temporanea per ${nome}:`);
+            if (nuovaPass) {
+                const nuovaPassHash = await hashString(nuovaPass);
+                utentiDB[nome].password = nuovaPassHash;
+                localStorage.setItem('utentiDBV9', JSON.stringify(utentiDB));
+                alert(`Password aggiornata con successo per ${nome}.`);
+            }
+        }
+
+        async function registraNuovoDipendenteAdmin(e) {
+            e.preventDefault();
+            if (inModalitaAssistente) return;
+            const nome = document.getElementById('adminNewNome').value.trim();
+            const pass = document.getElementById('adminNewPass').value;
+            let domanda = document.getElementById('adminNewDomanda').value;
+            if (domanda === 'personalizzata') {
+                domanda = document.getElementById('adminNewDomandaCustom').value.trim();
+            }
+            const risposta = document.getElementById('adminNewRisposta').value.trim().toLowerCase();
+
+            if(utentiDB[nome]) {
+                alert("Esiste già un dipendente con questo nome.");
+                return;
+            }
+
+            const passHash = await hashString(pass);
+            const rispostaHash = await hashString(risposta);
+
+            utentiDB[nome] = {
+                password: passHash,
+                domanda: domanda,
+                risposta: rispostaHash
+            };
+
+            localStorage.setItem('utentiDBV9', JSON.stringify(utentiDB));
+            const modalEl = document.getElementById('modalAggiungiDipendente');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            document.getElementById('formAggiungiDip').reset();
+            document.getElementById('adminNewDomandaCustom').classList.add('hidden');
+            aggiornaListaDipendentiAdmin();
+            alert("Dipendente aggiunto con successo!");
+        }
+
+        window.eliminaDipendente = function(nome) {
+            if (inModalitaAssistente) return;
+            if(confirm(`Vuoi davvero eliminare il dipendente ${nome}?`)) {
+                delete utentiDB[nome];
+                localStorage.setItem('utentiDBV9', JSON.stringify(utentiDB));
+                aggiornaListaDipendentiAdmin();
+            }
+        }
+
+        window.aggiungiNuovaFunzioneDipendente = function(e) {
+            e.preventDefault();
+            if (inModalitaAssistente) return;
+            const titolo = document.getElementById('inputTitoloFunzione').value.trim();
+            const desc = document.getElementById('inputDescFunzione').value.trim();
+
+            funzioniExtra.push({ id: Date.now(), titolo: titolo, desc: desc });
+            localStorage.setItem('funzioniExtraV9', JSON.stringify(funzioniExtra));
+            document.getElementById('formCreaFunzione').reset();
+            aggiornaListaFunzioniAdmin();
+            alert("Nuova funzione aggiunta con successo per i dipendenti!");
+        }
+
+        window.aggiornaListaFunzioniAdmin = function() {
+            if (inModalitaAssistente) return;
+            const tabella = document.getElementById('tabellaFunzioniAdmin');
+            tabella.innerHTML = '';
+
+            if (funzioniExtra.length === 0) {
+                tabella.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4 small">Nessuna funzione extra creata.</td></tr>`;
+                return;
+            }
+
+            funzioniExtra.forEach(f => {
+                tabella.innerHTML += `
+                    <tr>
+                        <td><strong><i class="fa-solid fa-heading me-1 text-primary"></i>${f.titolo}</strong></td>
+                        <td><span class="text-muted small">${f.desc}</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger rounded-3 px-2 shadow-sm" onclick="eliminaFunzioneExtra(${f.id})" title="Elimina Funzione"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        window.eliminaFunzioneExtra = function(id) {
+            if (inModalitaAssistente) return;
+            if(confirm("Vuoi eliminare questa funzione extra?")) {
+                funzioniExtra = funzioniExtra.filter(f => f.id !== id);
+                localStorage.setItem('funzioniExtraV9', JSON.stringify(funzioniExtra));
+                aggiornaListaFunzioniAdmin();
+            }
+        }
+
+        window.cambiaStato = function(id, nuovoStato) {
+            if (inModalitaAssistente) return;
+            const req = richieste.find(r => r.id === id);
+            if (req) {
+                req.stato = nuovoStato;
+                if(nuovoStato === 'Approvata') req.motivoRifiuto = '';
+                req.lettaDaDipendente = false;
+                salvaESci();
+            }
+        }
+
+        window.elimina = function(id) {
+            if (inModalitaAssistente) return;
+            if(confirm("Vuoi eliminare questa richiesta?")) {
+                richieste = richieste.filter(r => r.id !== id);
+                salvaESci();
+            }
+        }
+
+        window.salvaSogliaMaxFerie = function() {
+            const val = parseInt(document.getElementById('inputSogliaMaxFerie').value);
+            if (val > 0) {
+                sogliaMaxFerie = val;
+                localStorage.setItem('sogliaMaxFerieV9', sogliaMaxFerie);
+                disegnaCalendarioAdmin();
+            }
+        }
+
+        window.inviaComunicazioneHR = function(e) {
+            e.preventDefault();
+            if (inModalitaAssistente) return;
+            const testo = document.getElementById('testoComunicazione').value.trim();
+            comunicazioneHR = testo;
+            localStorage.setItem('comunicazioneHRV9', comunicazioneHR);
+            alert("Comunicazione pubblicata con successo per tutti i dipendenti!");
+            document.getElementById('formInvioComunicazione').reset();
+        }
+
+        window.inviaMessaggioAssistenteAdmin = function(e) {
+            e.preventDefault();
+            const testo = document.getElementById('testoMessaggioAssistente').value.trim();
+            if (!testo) return;
+
+            messaggiAssistenteAdmin.push({
+                id: Date.now(),
+                testo: testo,
+                data: new Date().toLocaleString()
+            });
+            localStorage.setItem('messaggiAssistenteAdminV9', JSON.stringify(messaggiAssistenteAdmin));
+            document.getElementById('formAssisAdminMsg').reset();
+            aggiornaListaMessaggiAssistente();
+            alert("Messaggio inviato con successo all'Admin!");
+        }
+
+        function aggiornaListaMessaggiAssistente() {
+            const container = document.getElementById('listaMessaggiAssistenteContainer');
+            if (!container) return;
+            if (messaggiAssistenteAdmin.length === 0) {
+                container.innerHTML = `<p class="text-muted small">Nessun messaggio inviato all'Admin.</p>`;
+                return;
+            }
+            let html = '';
+            messaggiAssistenteAdmin.slice().reverse().forEach(m => {
+                html += `
+                    <div class="list-group-item list-group-item-action mb-2 rounded-3 border shadow-sm">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 fw-bold text-primary"><i class="fa-solid fa-paper-plane me-1"></i>Segnalazione Assistente</h6>
+                            <small class="text-muted">${m.data}</small>
+                        </div>
+                        <p class="mb-1 small text-dark">${m.testo}</p>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        window.eseguiCambioPasswordRuolo = async function(e) {
+            e.preventDefault();
+            const passAttuale = document.getElementById('passAttualeRuolo').value;
+            const passNuova = document.getElementById('passNuovaRuolo').value;
+            const passConferma = document.getElementById('passConfermaRuolo').value;
+
+            if (passNuova !== passConferma) {
+                alert("La nuova password e la conferma non coincidono.");
+                return;
+            }
+
+            const hashAttuale = await hashString(passAttuale);
+            const hashNuova = await hashString(passNuova);
+
+            if (inModalitaAdmin) {
+                if (hashAttuale !== adminPasswordHash) {
+                    alert("Password attuale errata.");
+                    return;
+                }
+                adminPasswordHash = hashNuova;
+                localStorage.setItem('adminPassHashV9', adminPasswordHash);
+                alert("Password Admin aggiornata con successo!");
+            } else if (inModalitaAssistente) {
+                if (hashAttuale !== assistentePasswordHash) {
+                    alert("Password attuale Assistente errata.");
+                    return;
+                }
+                assistentePasswordHash = hashNuova;
+                localStorage.setItem('assistentePassHashV9', assistentePasswordHash);
+                alert("Password Assistente aggiornata con successo!");
+            }
+            document.getElementById('formCambiaPassRuolo').reset();
+        }
+
+        window.esportaExcelCSV = function() {
+            if (richieste.length === 0) {
+                alert("Nessun dato da esportare.");
+                return;
+            }
+            let csvContent = "\uFEFFID;Dipendente;Motivazione;Data Inizio;Data Fine;Note;Motivo Rifiuto;Stato\r\n";
+            richieste.forEach(r => {
+                csvContent += `"${r.id}";"${r.nome}";"${r.tipo}";"${r.dataInizio}";"${r.dataFine}";"${(r.note || '').replace(/"/g, '""')}";"${(r.motivoRifiuto || '').replace(/"/g, '""')}";"${r.stato}"\r\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Report_Assenze_HR_PRO_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.aggiornaSezioneStatistiche = function() {
+            const containerBarre = document.getElementById('containerBarreStatistiche');
+            const riassuntoTesto = document.getElementById('riassuntoStatisticheTesto');
+
+            if (richieste.length === 0) {
+                containerBarre.innerHTML = `<p class="text-muted small mb-0">Nessun dato statistico disponibile.</p>`;
+                riassuntoTesto.innerHTML = `<p class="text-muted small mb-0">Non ci sono richieste registrate nel sistema.</p>`;
+                return;
+            }
+
+            const conteggiTipi = {};
+            richieste.forEach(r => {
+                conteggiTipi[r.tipo] = (conteggiTipi[r.tipo] || 0) + 1;
+            });
+
+            let barreHtml = '';
+            let testoHtml = `<ul class="list-unstyled mb-0">`;
+            const totale = richieste.length;
+            const colori = ['bg-primary', 'bg-success', 'bg-warning', 'bg-info', 'bg-danger', 'bg-secondary', 'bg-dark'];
+            let idx = 0;
+
+            for (const [tipo, count] of Object.entries(conteggiTipi)) {
+                let percentuale = Math.round((count / totale) * 100);
+                let col = colori[idx % colori.length];
+                idx++;
+
+                barreHtml += `
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small fw-bold mb-1">
+                            <span><i class="fa-solid fa-tag me-1 text-primary"></i>${tipo}</span>
+                            <span class="text-muted">${count} (${percentuale}%)</span>
+                        </div>
+                        <div class="progress" style="height: 12px; border-radius: 6px;">
+                            <div class="progress-bar ${col} progress-bar-striped" role="progressbar" style="width: ${percentuale}%;"></div>
+                        </div>
+                    </div>
+                `;
+                testoHtml += `<li class="mb-2"><i class="fa-solid fa-angle-right text-primary me-2"></i><strong>${tipo}</strong>: ${count} richieste (${percentuale}% del totale).</li>`;
+            }
+
+            testoHtml += `</ul>`;
+            containerBarre.innerHTML = barreHtml;
+            riassuntoTesto.innerHTML = testoHtml;
+        }
+
+        window.cambiaMeseCalendarioAdmin = function(delta) {
+            dataCorrenteCalendarAdmin.setMonth(dataCorrenteCalendarAdmin.getMonth() + delta);
+            disegnaCalendarioAdmin();
+        }
+
+        window.impostaMeseCorrenteAdmin = function() {
+            dataCorrenteCalendarAdmin = new Date();
+            disegnaCalendarioAdmin();
+        }
+
+        window.disegnaCalendarioAdmin = function() {
+            const container = document.getElementById('grigliaCalendarioAdminContainer');
+            const labelMese = document.getElementById('labelMeseCorrenteAdmin');
+            
+            const anno = dataCorrenteCalendarAdmin.getFullYear();
+            const mese = dataCorrenteCalendarAdmin.getMonth();
+            const nomiMesi = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+            labelMese.innerText = `${nomiMesi[mese]} ${anno}`;
+
+            let html = `<div class="calendar-grid mb-2">`;
+            ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].forEach(g => {
+                html += `<div class="calendar-day-header">${g}</div>`;
+            });
+            html += `</div><div class="calendar-grid">`;
+
+            const primoGiornoMese = new Date(anno, mese, 1);
+            let giornoSettimanaInizio = primoGiornoMese.getDay() - 1;
+            if (giornoSettimanaInizio === -1) giornoSettimanaInizio = 6;
+
+            const ultimoGiornoMese = new Date(anno, mese + 1, 0).getDate();
+            const ultimoGiornoMesePrec = new Date(anno, mese, 0).getDate();
+            let totaleCelle = Math.ceil((giornoSettimanaInizio + ultimoGiornoMese) / 7) * 7;
+
+            for (let i = 0; i < totaleCelle; i++) {
+                let numGiorno, classeMese = "", annoCell = anno, meseCell = mese;
+
+                if (i < giornoSettimanaInizio) {
+                    numGiorno = ultimoGiornoMesePrec - (giornoSettimanaInizio - 1 - i);
+                    classeMese = "other-month";
+                    meseCell = mese - 1;
+                    if(meseCell < 0) { meseCell = 11; annoCell--; }
+                } else if (i >= giornoSettimanaInizio + ultimoGiornoMese) {
+                    numGiorno = i - (giornoSettimanaInizio + ultimoGiornoMese) + 1;
+                    classeMese = "other-month";
+                    meseCell = mese + 1;
+                    if(meseCell > 11) { meseCell = 0; annoCell++; }
+                } else {
+                    numGiorno = i - giornoSettimanaInizio + 1;
+                }
+
+                let dataIsoCell = `${annoCell}-${String(meseCell + 1).padStart(2, '0')}-${String(numGiorno).padStart(2, '0')}`;
+                let eventiGiorno = '';
+                let contatoreAssentiGiorno = 0;
+
+                richieste.forEach(r => {
+                    if (r.stato === 'Approvata' && dataIsoCell >= r.dataInizio && dataIsoCell <= r.dataFine) {
+                        contatoreAssentiGiorno++;
+                    }
+                });
+
+                richieste.forEach(r => {
+                    if (dataIsoCell >= r.dataInizio && dataIsoCell <= r.dataFine) {
+                        let tipoEv = r.stato === 'Approvata' ? 'approved' : (r.stato === 'In attesa' ? 'pending' : (r.stato === 'Rifiutata' ? 'rejected' : ''));
+                        if(tipoEv) {
+                            let etichettaOrario = '';
+                            if (r.tipo === 'Permesso Orario' && r.note) {
+                                let matchOrario = r.note.match(/Orario:\s*([\d:]+\s*-\s*[\d:]+)/);
+                                if (matchOrario) {
+                                    etichettaOrario = ` (${matchOrario[1]})`;
+                                }
+                            }
+                            eventiGiorno += `<div class="cal-event ${tipoEv}" title="${r.nome}: ${r.tipo}${etichettaOrario}">${r.nome}: ${r.tipo}${etichettaOrario}</div>`;
+                        }
+                    }
+                });
+
+                let badgeAllertaSoglia = '';
+                if (contatoreAssentiGiorno >= sogliaMaxFerie) {
+                    badgeAllertaSoglia = `<span class="position-absolute top-0 end-0 badge bg-danger rounded-pill m-1" title="Superata soglia max persone in ferie! (${contatoreAssentiGiorno})">⚠️ ${contatoreAssentiGiorno}</span>`;
+                }
+
+                html += `
+                    <div class="calendar-cell ${classeMese}">
+                        <div class="calendar-date-num">${numGiorno}</div>
+                        ${badgeAllertaSoglia}
+                        ${eventiGiorno}
+                    </div>
+                `;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function formattaData(dataStr) {
+            if (!dataStr) return '';
+            const parti = dataStr.split('-');
+            return `${parti[2]}/${parti[1]}/${parti[0]}`;
+        }
+
+        aggiornaContatoriAdmin();
+    </script>
+</body>
+</html>
